@@ -1,0 +1,16 @@
+input:
+  source: s3
+  path: s3://REPLACE_BUCKET/input/contacts/
+
+zyte:
+  global_qps: 200
+  queries_per_contact: 2
+  max_retries: 3
+
+processing:
+  checkpoint_path: s3://REPLACE_BUCKET/checkpoints/twitter-x/
+  response_path: s3://REPLACE_BUCKET/responses/twitter-x/
+  output_path: s3://REPLACE_BUCKET/output/twitter-x/
+
+security:
+  secret_name: REPLACE_ZYTE_SECRET_NAME
