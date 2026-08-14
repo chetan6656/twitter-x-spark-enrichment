@@ -1,0 +1,5 @@
+pyspark>=3.5,<4
+boto3>=1.34
+httpx>=0.27
+redis>=5.0
+pyyaml>=6.0
