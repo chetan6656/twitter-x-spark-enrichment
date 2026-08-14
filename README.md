@@ -33,11 +33,16 @@ This project searches for contact-level Twitter/X profiles using contact name, c
 
 py -3 src\run_pipeline.py --input data\contacts.csv --limit 100 --no-excel --queries-per-contact 2 --workers 4
 
-## AWS and Spark Direction
+## AWS Workflow
 
 For large-scale processing, Spark prepares and scores the data while a centralized worker service controls Zyte requests through one global rate limiter. The rate limit is cluster-wide, not per Spark executor, and must be approved by the Zyte account.
 
-Workflow: Contacts from RDS or S3 -> Spark query preparation -> global limiter -> Zyte Search API -> S3 cache and checkpoints -> Spark scoring -> final deliverable
+Workflow: Contacts from RDS or S3 -> Spark query preparation -> SQS producer -> centralized Zyte workers -> Redis global limiter -> S3 responses/failures -> Spark scoring -> Parquet and CSV deliverable.
+
+The production entry points are `spark/prepare_queries.py`,
+`spark/sqs_producer.py`, `worker/zyte_worker_service.py`, and
+`spark/score_results.py`. Spark executors never call Zyte. See
+`docs/AWS_RUNBOOK.md` for the 10,000-contact acceptance test.
 
 ## Security
 
@@ -55,4 +60,7 @@ Workflow: Contacts from RDS or S3 -> Spark query preparation -> global limiter -
 
 ## Status
 
-The local Twitter/X enrichment pipeline is implemented with caching, checkpointing, scoring, and resume support. Spark execution, centralized rate limiting, and cloud storage integration require a controlled test before production-scale processing.
+The application components and local contract tests are implemented. Production
+readiness is not claimed until the AWS acceptance test confirms the global QPS,
+resume behavior, failure/DLQ handling, and comparable coverage against the
+local baseline.

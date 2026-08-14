@@ -3,14 +3,23 @@ input:
   path: s3://REPLACE_BUCKET/input/contacts/
 
 zyte:
-  global_qps: 200
+  # Start below the account-approved limit. Never raise this above the Zyte
+  # contract without written confirmation.
+  global_qps: 50
   queries_per_contact: 2
   max_retries: 3
+  request_timeout_seconds: 50
 
 processing:
   checkpoint_path: s3://REPLACE_BUCKET/checkpoints/twitter-x/
   response_path: s3://REPLACE_BUCKET/responses/twitter-x/
   output_path: s3://REPLACE_BUCKET/output/twitter-x/
+  queue_visibility_timeout_seconds: 900
+  failed_response_prefix: failures/
 
 security:
   secret_name: REPLACE_ZYTE_SECRET_NAME
+
+observability:
+  cloudwatch_namespace: TwitterXEnrichment
+  metrics_interval_seconds: 60

@@ -1,12 +1,15 @@
 import argparse
 import hashlib
-from pyspark.sql import SparkSession, functions as F, types as T
+try:
+    from pyspark.sql import SparkSession, functions as F, types as T
+except ImportError:  # permit unit tests for the pure query builder locally
+    SparkSession = F = T = None
 
 
-QUERY_SCHEMA = T.ArrayType(T.StructType([
+QUERY_SCHEMA = (T.ArrayType(T.StructType([
     T.StructField("query_number", T.IntegerType(), False),
     T.StructField("query", T.StringType(), False),
-]))
+])) if T else None)
 
 
 def clean(value):
@@ -48,13 +51,20 @@ def build_queries(first, last, company, title, location):
     if query_two == query_one:
         query_two = f'(site:x.com OR site:twitter.com) "{full_name}" twitter'
 
-    return [
+    records = [
         {"query_number": 1, "query": query_one},
         {"query_number": 2, "query": query_two},
     ]
+    # The contact-level budget is physical requests, not merely query slots.
+    # Keep this assertion close to the generator so future edits cannot silently
+    # reduce coverage or add a third request.
+    assert len(records) == 2 and len({record["query"] for record in records}) == 2
+    return records
 
 
 def main():
+    if SparkSession is None:
+        raise RuntimeError("pyspark is required to run prepare_queries.py")
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
@@ -133,6 +143,7 @@ def main():
             F.col("record.query_number").alias("query_number"),
             F.col("record.query").alias("query"),
         )
+        .withColumn("query_hash", F.sha2(F.col("query"), 256))
         .withColumn(
             "query_id",
             F.sha2(

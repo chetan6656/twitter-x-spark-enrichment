@@ -1,9 +1,6 @@
 import os
 import time
 import uuid
-import redis
-
-
 class GlobalRateLimiter:
     """
     Cluster-wide limiter.
@@ -13,10 +10,13 @@ class GlobalRateLimiter:
     """
 
     def __init__(self, redis_url=None, qps=200, key="twitter-x:global-rate"):
+        import redis
         self.redis = redis.Redis.from_url(
             redis_url or os.environ["REDIS_URL"],
             decode_responses=True,
         )
+        if float(qps) <= 0:
+            raise ValueError("qps must be greater than zero")
         self.interval_seconds = 1.0 / float(qps)
         self.key = key
 
